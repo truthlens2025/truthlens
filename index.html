@@ -10,7 +10,16 @@
 <meta property="og:description" content="秒速识别AI生成内容，准确率高达98.6%">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0a0a0f">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TruthLens">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="TruthLens">
+<meta name="msapplication-TileColor" content="#7c6aff">
+<meta name="msapplication-tap-highlight" content="no">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -238,6 +247,7 @@ footer { border-top: 1px solid var(--border); padding: 22px 36px; display: flex;
   </a>
   <div class="nav-right">
     <button class="history-btn" onclick="toggleHistory()">📋 <span id="history-count">历史记录</span></button>
+    <button class="history-btn" id="install-btn" style="display:none" onclick="installApp()">📲 <span>安装App</span></button>
     <div class="lang-toggle">
       <button class="lang-btn active" onclick="setLang('zh')">中文</button>
       <button class="lang-btn" onclick="setLang('en')">EN</button>
@@ -704,6 +714,27 @@ function updateHistoryCount() {
   el.textContent = detectionHistory.length > 0 ? `历史记录 (${detectionHistory.length})` : '历史记录';
 }
 
+// ===== Install App =====
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const installBtn = document.getElementById('install-btn');
+  if (installBtn) installBtn.style.display = 'flex';
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') {
+        showTooltip('App installing... 📲');
+      }
+      deferredPrompt = null;
+    });
+  }
+}
+
 // ===== Tooltip =====
 function showTooltip(msg) {
   const t = document.getElementById('tooltip');
@@ -717,6 +748,15 @@ function showTooltip(msg) {
 // ===== Init =====
 switchTab('text', document.querySelector('.tab.active'));
 updateHistoryCount();
+
+// ===== PWA Service Worker =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
 
 // Animate stats counter
 function animateCounter(el, target, suffix = '') {
