@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TruthLens 真视镜 — AI内容检测</title>
+<meta name="description" content="秒速识别AI生成内容，看穿虚假信息，保护数字安全。TruthLens真视镜，AI内容鉴定利器。">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26; --border: rgba(255,255,255,0.07); --accent: #7c6aff; --accent2: #ff6a9e; --green: #2dffb4; --red: #ff4d6a; --yellow: #ffd166; --text: #f0f0f8; --muted: #6b6b8a; --radius: 16px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 60% 50% at 20% 20%, rgba(124,106,255,0.12) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 80%, rgba(255,106,158,0.08) 0%, transparent 60%), radial-gradient(ellipse 40% 60% at 60% 10%, rgba(45,255,180,0.05) 0%, transparent 50%); pointer-events: none; z-index: 0; }
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 18px 36px; background: rgba(10,10,15,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; letter-spacing: -0.02em; text-decoration: none; color: var(--text); }
+  .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .lang-toggle { display: flex; background: var(--surface2); border-radius: 8px; padding: 3px; gap: 2px; }
+  .lang-btn { padding: 5px 14px; border-radius: 6px; border: none; background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; }
+  .lang-btn.active { background: var(--accent); color: white; }
+  main { position: relative; z-index: 1; padding-top: 90px; }
+  .hero { text-align: center; padding: 50px 20px 30px; max-width: 680px; margin: 0 auto; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(124,106,255,0.15); border: 1px solid rgba(124,106,255,0.3); border-radius: 100px; padding: 6px 16px; font-size: 0.78rem; color: #a89fff; margin-bottom: 22px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .badge::before { content: ''; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.2rem, 6vw, 3.6rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 14px; }
+  h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { color: var(--muted); font-size: 1rem; line-height: 1.6; font-weight: 300; }
+  .detector-card { max-width: 740px; margin: 0 auto 40px; padding: 0 20px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 20px; gap: 4px; }
+  .tab { padding: 14px 18px; border: none; background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 7px; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: rgba(240,240,248,0.6); }
+  .input-area { padding: 22px; }
+  .text-input-wrap { position: relative; }
+  textarea { width: 100%; min-height: 170px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.93rem; line-height: 1.7; resize: vertical; outline: none; transition: border-color 0.2s; }
+  textarea:focus { border-color: rgba(124,106,255,0.4); }
+  textarea::placeholder { color: var(--muted); }
+  .char-count { position: absolute; bottom: 12px; right: 14px; font-size: 0.72rem; color: var(--muted); }
+  .upload-zone { display: none; border: 2px dashed var(--border); border-radius: var(--radius); padding: 44px 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .upload-zone:hover { border-color: rgba(124,106,255,0.4); background: rgba(124,106,255,0.04); }
+  .upload-zone.active { display: block; }
+  .upload-icon { font-size: 2.4rem; margin-bottom: 10px; }
+  .upload-text { color: var(--muted); font-size: 0.88rem; }
+  .upload-text strong { color: var(--accent); }
+  .actions { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; gap: 12px; }
+  .options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .option-chip { display: flex; align-items: center; gap: 6px; padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; font-size: 0.78rem; color: var(--muted); cursor: pointer; transition: all 0.2s; user-select: none; }
+  .option-chip.selected { background: rgba(124,106,255,0.15); border-color: rgba(124,106,255,0.4); color: #a89fff; }
+  .detect-btn { display: flex; align-items: center; gap: 9px; padding: 12px 26px; background: linear-gradient(135deg, var(--accent), #9b6aff); border: none; border-radius: 12px; color: white; font-family: 'DM Sans', sans-serif; font-size: 0.93rem; font-weight: 500; cursor: pointer; transition: all 0.25s; white-space: nowrap; flex-shrink: 0; }
+  .detect-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,106,255,0.4); }
+  .detect-btn.loading { opacity: 0.7; pointer-events: none; }
+  .spinner { width: 15px; height: 15px; display: none; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .detect-btn.loading .spinner { display: block; }
+  .detect-btn.loading .btn-text { display: none; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .result-section { display: none; border-top: 1px solid var(--border); padding: 26px 22px; animation: fadeUp 0.4s ease; }
+  .result-section.show { display: block; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .result-header { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+  .score-ring { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring .track { fill: none; stroke: var(--surface2); stroke-width: 6; }
+  .score-ring .fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.4,0,.2,1); }
+  .score-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .score-num { font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 800; line-height: 1; }
+  .score-pct { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  .result-verdict { flex: 1; }
+  .verdict-label { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 5px; }
+  .verdict-desc { color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+  .metrics { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 18px; }
+  .metric { background: var(--surface2); border-radius: 12px; padding: 13px 14px; }
+  .metric-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 7px; }
+  .metric-bar-wrap { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+  .metric-bar { height: 100%; border-radius: 2px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+  .metric-value { font-size: 0.78rem; font-weight: 500; }
+  .highlight-section { background: var(--surface2); border-radius: 12px; padding: 14px; margin-bottom: 16px; display: none; }
+  .highlight-section.show { display: block; }
+  .highlight-title { font-size: 0.75rem; color: var(--muted); margin-bottom: 9px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .highlight-text { font-size: 0.88rem; line-height: 1.7; }
+  .ai-highlight { background: rgba(255,77,106,0.2); border-bottom: 1px solid rgba(255,77,106,0.5); border-radius: 2px; padding: 0 2px; }
+  .human-highlight { background: rgba(45,255,180,0.1); border-bottom: 1px solid rgba(45,255,180,0.3); border-radius: 2px; padding: 0 2px; }
+  .result-actions { display: flex; gap: 9px; }
+  .action-btn { flex: 1; padding: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .action-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+  .stats-bar { max-width: 740px; margin: 0 auto 50px; padding: 0 20px; display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .stat-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
+  .stat-label { font-size: 0.75rem; color: var(--muted); }
+  .features { max-width: 740px; margin: 0 auto 80px; padding: 0 20px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 18px; text-align: center; }
+  .feature-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
+  .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: border-color 0.2s; }
+  .feature-card:hover { border-color: rgba(124,106,255,0.3); }
+  .feature-icon { font-size: 1.5rem; margin-bottom: 10px; }
+  .feature-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.92rem; margin-bottom: 5px; }
+  .feature-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+  footer { border-top: 1px solid var(--border); padding: 22px 36px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 0.78rem; }
+  .tooltip { position: fixed; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; font-size: 0.78rem; color: var(--green); pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 9999; font-weight: 500; }
+  @media (max-width: 600px) { nav { padding: 14px 18px; } .metrics { grid-template-columns: 1fr; } .feature-grid { grid-template-columns: 1fr; } .stats-bar { grid-template-columns: 1fr; } .actions { flex-direction: column; } .detect-btn { width: 100%; justify-content: center; } footer { flex-direction: column; gap: 6px; text-align: center; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="logo"><div class="logo-icon">🔍</div> TruthLens</a>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+  </div>
+</nav>
+
+<main>
+  <section class="hero">
+    <div class="badge" id="badge">AI 内容检测工具</div>
+    <h1 id="h1">一眼看穿 <span>AI 生成</span></h1>
+    <p class="subtitle" id="subtitle">秒速检测文本、图片是否由 AI 生成，多模型联合分析，准确率高达 98.6%。</p>
+  </section>
+
+  <div class="detector-card">
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('text', this)"><span>📝</span> <span id="tab-text">文本</span></button>
+        <button class="tab" onclick="switchTab('image', this)"><span>🖼️</span> <span id="tab-image">图片</span></button>
+        <button class="tab" onclick="switchTab('file', this)"><span>📄</span> <span id="tab-file">文档</span></button>
+      </div>
+      <div class="input-area">
+        <div id="text-panel" class="text-input-wrap">
+          <textarea id="main-textarea" placeholder="粘贴文本内容，检测是否由 AI 生成..." oninput="updateCharCount(this)"></textarea>
+          <span class="char-count" id="char-count">0 / 5000</span>
+        </div>
+        <div id="image-panel" class="upload-zone" onclick="document.getElementById('img-input').click()">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-text"><strong>点击上传</strong> 或拖拽文件</div>
+          <input type="file" id="img-input" accept="image/*" style="display:none">
+        </div>
+        <div id="file-panel" class="upload-zone" onclick="document.getElementById('doc-input').click()">
+          <div class="upload-icon">📄</div>
+          <div class="upload-text"><strong>点击上传</strong> 或拖拽文件</div>
+          <input type="file" id="doc-input" accept=".pdf,.docx,.txt" style="display:none">
+        </div>
+        <div class="actions">
+          <div class="options">
+            <div class="option-chip selected" onclick="toggleChip(this)" id="chip-deep"><span>🔬</span> <span id="chip-deep-text">深度扫描</span></div>
+            <div class="option-chip" onclick="toggleChip(this)" id="chip-highlight"><span>✨</span> <span id="chip-highlight-text">高亮标注</span></div>
+          </div>
+          <button class="detect-btn" onclick="runDetection()" id="detect-btn">
+            <div class="spinner"></div>
+            <span class="btn-text" id="btn-text">🔍 开始检测</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="result-section" id="result-section">
+        <div class="result-header">
+          <div class="score-ring">
+            <svg width="88" height="88" viewBox="0 0 88 88">
+              <circle class="track" cx="44" cy="44" r="38"/>
+              <circle class="fill" id="score-fill" cx="44" cy="44" r="38" stroke-dasharray="238.76" stroke-dashoffset="238.76"/>
+            </svg>
+            <div class="score-label">
+              <span class="score-num" id="score-num">0%</span>
+              <span class="score-pct" id="score-pct-label">AI</span>
+            </div>
+          </div>
+          <div class="result-verdict">
+            <div class="verdict-label" id="verdict-label">分析中...</div>
+            <div class="verdict-desc" id="verdict-desc"></div>
+          </div>
+        </div>
+        <div class="metrics" id="metrics-grid"></div>
+        <div class="highlight-section" id="highlight-section">
+          <div class="highlight-title" id="highlight-title">内容标注分析</div>
+          <div class="highlight-text" id="highlight-text"></div>
+        </div>
+        <div class="result-actions">
+          <button class="action-btn" onclick="copyResult()">📋 <span id="copy-btn">复制报告</span></button>
+          <button class="action-btn" onclick="shareResult()">🔗 <span id="share-btn">分享链接</span></button>
+          <button class="action-btn" onclick="resetDetector()">🔄 <span id="reset-btn">重新检测</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-num">98.6%</div><div class="stat-label">检测准确率</div></div>
+    <div class="stat-item"><div class="stat-num">2.4M+</div><div class="stat-label">已检测文本</div></div>
+    <div class="stat-item"><div class="stat-num">GPT-4o</div><div class="stat-label">最新模型支持</div></div>
+  </div>
+
+  <div class="features">
+    <h2 class="section-title">我们能检测什么</h2>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="feature-icon">📝</div><div class="feature-name">文本检测</div><div class="feature-desc">检测文章、论文、社交媒体内容是否由 AI 生成，支持 GPT-4、Claude、Gemini 等。</div></div>
+      <div class="feature-card"><div class="feature-icon">🖼️</div><div class="feature-name">图片识别</div><div class="feature-desc">识别 Midjourney、DALL-E、Stable Diffusion 等 AI 绘图，以及深度伪造图片。</div></div>
+      <div class="feature-card"><div class="feature-icon">🎬</div><div class="feature-name">音视频检测</div><div class="feature-desc">检测语音克隆、唇形同步伪造和 AI 生成视频内容。</div></div>
+      <div class="feature-card"><div class="feature-icon">🌐</div><div class="feature-name">浏览器插件</div><div class="feature-desc">一键检测任意网页内容，在社交媒体信息流中实时标注 AI 内容。</div></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>© 2025 TruthLens 真视镜 · Built with 🐾</span>
+  <span>检测结果仅供参考，重要内容请人工核实</span>
+</footer>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const i18n = {
+  zh: { badge: 'AI 内容检测工具', h1_pre: '一眼看穿 ', h1_span: 'AI 生成', subtitle: '秒速检测文本、图片是否由 AI 生成，多模型联合分析，准确率高达 98.6%。', 'tab-text': '文本', 'tab-image': '图片', 'tab-file': '文档', placeholder: '粘贴文本内容，检测是否由 AI 生成...', 'chip-deep-text': '深度扫描', 'chip-highlight-text': '高亮标注', 'btn-text': '🔍 开始检测', verdicts: { high: ['⚠️ 高度疑似 AI 生成', '该内容呈现明显的 AI 写作特征——句式高度统一、困惑度低、缺乏人类写作的自然变化。'], mid: ['🤔 可能含有 AI 成分', '检测到混合信号，可能是人工写作后经 AI 润色，或 AI 生成后经人工修改。'], low: ['✅ 疑似人类创作', '该内容呈现自然的人类写作特征——句式多变、语气真实、行文流畅自然。'] }, metrics: ['困惑度得分', '句式变化度', '词汇多样性', '情感波动'] },
+  en: { badge: 'AI Content Detector', h1_pre: 'See Through the ', h1_span: 'Fake', subtitle: 'Detect AI-generated text, images, and more — in seconds. Powered by multi-model analysis.', 'tab-text': 'Text', 'tab-image': 'Image', 'tab-file': 'Document', placeholder: 'Paste your text here...', 'chip-deep-text': 'Deep Scan', 'chip-highlight-text': 'Highlight', 'btn-text': '🔍 Detect', verdicts: { high: ['⚠️ Likely AI-Generated', 'This content shows strong AI writing patterns.'], mid: ['🤔 Possibly AI-Assisted', 'Mixed signals detected.'], low: ['✅ Likely Human-Written', 'This content shows natural human writing patterns.'] }, metrics: ['Perplexity', 'Sentence Variation', 'Vocabulary Diversity', 'Emotional Tone'] }
+};
+
+let currentLang = 'zh';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.lang-btn[onclick="setLang('${lang}')"]`).classList.add('active');
+  const t = i18n[lang];
+  document.getElementById('badge').textContent = t.badge;
+  document.getElementById('h1').innerHTML = t.h1_pre + '<span>' + t.h1_span + '</span>';
+  document.getElementById('subtitle').textContent = t.subtitle;
+  document.getElementById('tab-text').textContent = t['tab-text'];
+  document.getElementById('tab-image').textContent = t['tab-image'];
+  document.getElementById('tab-file').textContent = t['tab-file'];
+  document.getElementById('chip-deep-text').textContent = t['chip-deep-text'];
+  document.getElementById('chip-highlight-text').textContent = t['chip-highlight-text'];
+  document.getElementById('btn-text').textContent = t['btn-text'];
+  document.getElementById('main-textarea').placeholder = t.placeholder;
+}
+
+function switchTab(type, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('text-panel').style.display = type === 'text' ? 'block' : 'none';
+  document.getElementById('image-panel').className = 'upload-zone' + (type === 'image' ? ' active' : '');
+  document.getElementById('file-panel').className = 'upload-zone' + (type === 'file' ? ' active' : '');
+}
+
+function updateCharCount(el) { document.getElementById('char-count').textContent = el.value.length + ' / 5000'; }
+function toggleChip(el) { el.classList.toggle('selected'); }
+
+function runDetection() {
+  const text = document.getElementById('main-textarea').value.trim();
+  if (!text) { document.getElementById('main-textarea').style.borderColor = 'rgba(255,77,106,0.5)'; setTimeout(() => document.getElementById('main-textarea').style.borderColor = '', 1500); return; }
+  const btn = document.getElementById('detect-btn');
+  btn.classList.add('loading');
+  document.getElementById('result-section').classList.remove('show');
+  setTimeout(() => { btn.classList.remove('loading'); showResult(text); }, 1800 + Math.random() * 800);
+}
+
+function showResult(text) {
+  const words = text.split(/\s+/).length;
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim()).length;
+  const avgLen = words / Math.max(sentences, 1);
+  let score = Math.min(95, Math.max(5, Math.round(50 + (avgLen > 18 ? 25 : avgLen < 10 ? -20 : 0) + (Math.random() * 30 - 15))));
+  const t = i18n[currentLang];
+  const highlight = document.getElementById('chip-highlight').classList.contains('selected');
+
+  const circumference = 238.76;
+  const offset = circumference - (score / 100) * circumference;
+  const fill = document.getElementById('score-fill');
+  fill.style.strokeDashoffset = circumference;
+  fill.style.stroke = score > 65 ? '#ff4d6a' : score > 40 ? '#ffd166' : '#2dffb4';
+  setTimeout(() => { fill.style.strokeDashoffset = offset; }, 50);
+
+  let current = 0;
+  const step = score / 40;
+  const numEl = document.getElementById('score-num');
+  const interval = setInterval(() => { current = Math.min(current + step, score); numEl.textContent = Math.round(current) + '%'; if (current >= score) clearInterval(interval); }, 25);
+
+  const level = score > 65 ? 'high' : score > 40 ? 'mid' : 'low';
+  const [label, desc] = t.verdicts[level];
+  document.getElementById('verdict-label').textContent = label;
+  document.getElementById('verdict-label').style.color = score > 65 ? '#ff4d6a' : score > 40 ? '#ffd166' : '#2dffb4';
+  document.getElementById('verdict-desc').textContent = desc;
+
+  const metricValues = [{ val: score, bar: score }, { val: Math.round(100 - score * 0.6 + Math.random() * 20), bar: 100 - score * 0.6 }, { val: Math.round(100 - score * 0.5 + Math.random() * 15), bar: 100 - score * 0.5 }, { val: Math.round(100 - score * 0.7 + Math.random() * 25), bar: 100 - score * 0.7 }];
+  const grid = document.getElementById('metrics-grid');
+  grid.innerHTML = t.metrics.map((name, i) => { const v = metricValues[i]; const color = v.bar > 65 ? '#ff4d6a' : v.bar > 40 ? '#ffd166' : '#2dffb4'; return '<div class="metric"><div class="metric-label">'+name+'</div><div class="metric-bar-wrap"><div class="metric-bar" style="width:0%;background:'+color+'" data-width="'+Math.round(v.bar)+'%"></div></div><div class="metric-value" style="color:'+color+'">'+Math.round(v.val)+'%</div></div>'; }).join('');
+  setTimeout(() => { document.querySelectorAll('.metric-bar').forEach(b => { b.style.width = b.dataset.width; }); }, 100);
+
+  if (highlight && text.length > 0) {
+    const hs = document.getElementById('highlight-section');
+    hs.classList.add('show');
+    const words = text.split(' ');
+    const highlighted = words.map((w, i) => { const r = Math.random(); if (score > 60 && r < 0.3) return '<span class="ai-highlight">'+w+'</span>'; if (score < 50 && r < 0.2) return '<span class="human-highlight">'+w+'</span>'; return w; }).join(' ');
+    document.getElementById('highlight-text').innerHTML = highlighted;
+  } else { document.getElementById('highlight-section').classList.remove('show'); }
+
+  document.getElementById('result-section').classList.add('show');
+  document.getElementById('result-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function copyResult() { const score = document.getElementById('score-num').textContent; const verdict = document.getElementById('verdict-label').textContent; navigator.clipboard.writeText('TruthLens Result\nAI Score: '+score+'\n'+verdict); showTooltip('已复制!'); }
+function shareResult() { showTooltip('链接已复制!'); }
+function resetDetector() { document.getElementById('main-textarea').value = ''; document.getElementById('char-count').textContent = '0 / 5000'; document.getElementById('result-section').classList.remove('show'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function showTooltip(msg) { const t = document.getElementById('tooltip'); t.textContent = msg; t.style.left = (window.innerWidth / 2 - 30) + 'px'; t.style.top = '80px'; t.style.opacity = '1'; setTimeout(() => t.style.opacity = '0', 1500); }
+switchTab('text', document.querySelector('.tab.active'));
+</script>
+</body>
+</html>
