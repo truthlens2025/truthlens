@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -401,7 +401,29 @@ footer { border-top: 1px solid var(--border); padding: 22px 36px; display: flex;
 
 <div class="tooltip" id="tooltip"></div>
 
-<script>
+<script>// ===== DEBUG - Error Catcher =====
+window.onerror = function(msg, url, line, col, err) {
+  var dbg = document.getElementById('debug-overlay');
+  if (!dbg) {
+    dbg = document.createElement('div');
+    dbg.id = 'debug-overlay';
+    dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#ff4d6a;color:#fff;padding:10px;font-size:13px;font-family:monospace;max-height:40vh;overflow:auto;white-space:pre-wrap;word-break:break-all;';
+    document.body.appendChild(dbg);
+  }
+  dbg.textContent += 'ERROR: ' + msg + ' (line ' + line + ')\n';
+  return false;
+};
+// Debug: confirm JS is running
+document.addEventListener('DOMContentLoaded', function() {
+  var dbg = document.createElement('div');
+  dbg.id = 'js-status';
+  dbg.style.cssText = 'position:fixed;bottom:10px;right:10px;z-index:99999;background:#2dffb4;color:#000;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:bold;';
+  dbg.textContent = 'JS OK ✓';
+  document.body.appendChild(dbg);
+  setTimeout(function(){ dbg.remove(); }, 3000);
+});
+// ===== END DEBUG =====
+
 // ===== i18n =====
 const i18n = {
   zh: {
