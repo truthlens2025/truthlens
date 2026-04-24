@@ -1,0 +1,561 @@
+软件名称：TruthLens 真视镜
+版本号：V1.0.0
+开发完成日期：2026年4月
+
+===============================================
+源代码后30页（部分）
+===============================================
+
+文件名：sw.js (Service Worker)
+
+const CACHE_NAME = 'truthlens-v1';
+const STATIC_ASSETS = [
+    '/',
+    '/index.html',
+    '/manifest.json',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png'
+];
+
+// Install event - cache static assets
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => {
+                console.log('Caching static assets');
+                return cache.addAll(STATIC_ASSETS);
+            })
+            .catch(err => console.error('Cache failed:', err))
+    );
+    self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames
+                    .filter(name => name !== CACHE_NAME)
+                    .map(name => caches.delete(name))
+            );
+        })
+    );
+    self.clients.claim();
+});
+
+// Fetch event - serve from cache or network
+self.addEventListener('fetch', event => {
+    event.respondWith(
+        caches.match(event.request)
+            .then(response => {
+                // Return cached version or fetch from network
+                if (response) {
+                    return response;
+                }
+                return fetch(event.request)
+                    .then(networkResponse => {
+                        // Cache new requests
+                        if (networkResponse.ok) {
+                            const clone = networkResponse.clone();
+                            caches.open(CACHE_NAME).then(cache => {
+                                cache.put(event.request, clone);
+                            });
+                        }
+                        return networkResponse;
+                    });
+            })
+            .catch(() => {
+                // Fallback for offline
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/index.html');
+                }
+            })
+    );
+});
+
+// Background sync for offline detection
+self.addEventListener('sync', event => {
+    if (event.tag === 'background-sync') {
+        event.waitUntil(doBackgroundSync());
+    }
+});
+
+async function doBackgroundSync() {
+    console.log('Background sync executed');
+}
+
+// Push notification handling
+self.addEventListener('push', event => {
+    const options = {
+        body: event.data ? event.data.text() : 'New notification',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        vibrate: [100, 50, 100]
+    };
+    
+    event.waitUntil(
+        self.registration.showNotification('TruthLens', options)
+    );
+});
+
+
+文件名：manifest.json
+
+{
+    "name": "TruthLens 真视镜",
+    "short_name": "TruthLens",
+    "description": "AI内容检测工具，一键识别文本、图片、文档是否由AI生成",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0f0f23",
+    "theme_color": "#0f0f23",
+    "orientation": "portrait",
+    "scope": "/",
+    "lang": "zh-CN",
+    "icons": [
+        {
+            "src": "icons/icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/icon-152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/icon-384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable any"
+        }
+    ],
+    "categories": ["productivity", "utilities"],
+    "screenshots": [
+        {
+            "src": "screenshots/screenshot-1.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "首页检测界面"
+        },
+        {
+            "src": "screenshots/screenshot-2.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "检测结果展示"
+        }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+}
+
+
+文件名：capacitor.config.json
+
+{
+    "appId": "com.truthlens.app",
+    "appName": "TruthLens 真视镜",
+    "webDir": "www",
+    "bundledWebRuntime": false,
+    "plugins": {
+        "SplashScreen": {
+            "launchShowDuration": 2000,
+            "launchAutoHide": true,
+            "backgroundColor": "#0f0f23",
+            "androidSplashResourceName": "splash",
+            "androidScaleType": "CENTER_CROP"
+        },
+        "StatusBar": {
+            "style": "DARK",
+            "backgroundColor": "#0f0f23"
+        }
+    },
+    "android": {
+        "buildOptions": {
+            "keystorePath": "android.keystore",
+            "keystoreAlias": "truthlens",
+            "keystorePassword": "",
+            "keystoreAliasPassword": ""
+        }
+    },
+    "server": {
+        "androidScheme": "https",
+        "cleartext": true
+    }
+}
+
+
+文件名：package.json
+
+{
+    "name": "truthlens-web",
+    "version": "1.0.0",
+    "description": "TruthLens - AI内容检测工具",
+    "main": "index.html",
+    "scripts": {
+        "start": "npx serve .",
+        "build": "echo 'Static site - no build needed'",
+        "icons": "node generate-icons.js",
+        "android": "npx cap open android",
+        "sync": "npx cap sync",
+        "screenshots": "node capture-screenshots.js"
+    },
+    "keywords": [
+        "AI检测",
+        "内容识别",
+        "文本检测",
+        "图片识别",
+        "PWA"
+    ],
+    "author": "钟顺英",
+    "license": "MIT",
+    "devDependencies": {
+        "@capacitor/cli": "^5.0.0",
+        "@capacitor/android": "^5.0.0",
+        "@capacitor/core": "^5.0.0",
+        "puppeteer-core": "^21.0.0",
+        "sharp": "^0.32.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://gitee.com/zhong-shunying/truthlens-web"
+    },
+    "homepage": "https://benevolent-croquembouche-5b6913.netlify.app",
+    "bugs": {
+        "url": "https://gitee.com/zhong-shunying/truthlens-web/issues"
+    }
+}
+
+
+文件名：privacy.html (隐私政策)
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隐私政策 - TruthLens 真视镜</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a18 0%, #0f0f23 50%, #1a1a2e 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="text-white font-sans antialiased">
+    <div class="max-w-4xl mx-auto px-4 py-12">
+        <div class="glass rounded-3xl p-8 md:p-12">
+            <h1 class="text-3xl md:text-4xl font-bold mb-8 text-center">隐私政策</h1>
+            
+            <div class="space-y-6 text-gray-300 leading-relaxed">
+                <p class="text-sm text-gray-500">更新日期：2026年4月</p>
+                
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">1. 引言</h2>
+                    <p>TruthLens（"我们"、"本应用"）高度重视用户的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。</p>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">2. 信息收集</h2>
+                    <p>我们可能收集以下信息：</p>
+                    <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                        <li>您主动上传的文本、图片、文档等内容</li>
+                        <li>设备信息（设备型号、操作系统版本）</li>
+                        <li>应用使用数据（功能使用频率、错误日志）</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">3. 信息使用</h2>
+                    <p>我们使用收集的信息用于：</p>
+                    <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                        <li>提供AI内容检测服务</li>
+                        <li>改进应用性能和用户体验</li>
+                        <li>发送服务通知（如您选择接收）</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">4. 本地处理原则</h2>
+                    <p>本应用的核心检测功能采用本地处理模式。您上传的内容主要用于实时检测，我们不会永久存储您的原始内容。</p>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">5. 信息安全</h2>
+                    <p>我们采取以下措施保护您的信息安全：</p>
+                    <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                        <li>数据传输采用加密协议</li>
+                        <li>严格的访问控制和权限管理</li>
+                        <li>定期安全审计和漏洞修复</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">6. 第三方服务</h2>
+                    <p>我们可能使用以下第三方服务：</p>
+                    <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                        <li>云服务提供商（用于应用托管）</li>
+                        <li>分析工具（用于应用性能监控）</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">7. 您的权利</h2>
+                    <p>您拥有以下权利：</p>
+                    <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                        <li>访问和更正您的个人信息</li>
+                        <li>删除您的账户和相关数据</li>
+                        <li>选择退出数据收集（部分功能可能受限）</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">8. 政策更新</h2>
+                    <p>我们可能会不时更新本隐私政策。更新后的政策将在应用内公布，重大变更将通过适当方式通知您。</p>
+                </section>
+
+                <section>
+                    <h2 class="text-xl font-semibold mb-4 text-white">9. 联系我们</h2>
+                    <p>如果您对本隐私政策有任何疑问，请联系我们：</p>
+                    <p class="mt-2">邮箱：support@truthlens.app</p>
+                </section>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+文件名：resize-screenshots.js
+
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs');
+
+const inputDir = 'C:/Users/ruby/.qclaw/workspace/truthlens-web/screenshots';
+const outputDir = 'C:/Users/ruby/.qclaw/workspace/truthlens-web/screenshots/output';
+
+const maxWidth = 1080;
+const maxHeight = 1920;
+const minWidth = 320;
+const minHeight = 480;
+
+async function resizeImage(filename) {
+    const inputPath = path.join(inputDir, filename);
+    const outputFilename = filename.replace('.png', '_resized.png');
+    const outputPath = path.join(outputDir, outputFilename);
+    
+    const metadata = await sharp(inputPath).metadata();
+    console.log(`Processing ${filename}: ${metadata.width}x${metadata.height}`);
+    
+    let width = metadata.width;
+    let height = metadata.height;
+    
+    if (width > maxWidth) {
+        height = Math.round(height * (maxWidth / width));
+        width = maxWidth;
+    }
+    if (height > maxHeight) {
+        width = Math.round(width * (maxHeight / height));
+        height = maxHeight;
+    }
+    if (width < minWidth) {
+        height = Math.round(height * (minWidth / width));
+        width = minWidth;
+    }
+    if (height < minHeight) {
+        width = Math.round(width * (minHeight / height));
+        height = minHeight;
+    }
+    
+    await sharp(inputPath)
+        .resize(width, height)
+        .png({ quality: 80 })
+        .toFile(outputPath);
+    
+    const newMeta = await sharp(outputPath).metadata();
+    const sizeKB = Math.round(fs.statSync(outputPath).size / 1024);
+    console.log(`Resized to: ${newMeta.width}x${newMeta.height}, ${sizeKB}KB`);
+}
+
+async function main() {
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    const files = ['screenshot-1.png', 'screenshot-2.png', 'screenshot-3.png'];
+    
+    for (const file of files) {
+        await resizeImage(file);
+    }
+    
+    console.log('\nAll screenshots resized to: ' + outputDir);
+}
+
+main().catch(console.error);
+
+
+文件名：compress-screenshots.js
+
+const sharp = require('sharp');
+const fs = require('fs');
+const path = require('path');
+
+const inputDir = 'C:/Users/ruby/.qclaw/workspace/truthlens-web/screenshots-final';
+const outputDir = 'C:/Users/ruby/.qclaw/workspace/truthlens-web/screenshots-upload';
+
+const screenshots = [
+    'screenshot-1-home.png',
+    'screenshot-2-result.png',
+    'screenshot-3-features.png',
+    'screenshot-4-history.png',
+    'screenshot-5-settings.png'
+];
+
+async function compressImage(filename) {
+    const inputPath = path.join(inputDir, filename);
+    const outputFilename = filename.replace('.png', '.jpg');
+    const outputPath = path.join(outputDir, outputFilename);
+    
+    const metadata = await sharp(inputPath).metadata();
+    console.log(`Processing ${filename}: ${metadata.width}x${metadata.height}`);
+    
+    await sharp(inputPath)
+        .resize(1080, 1920, { fit: 'cover', position: 'center' })
+        .jpeg({ quality: 85, progressive: true })
+        .toFile(outputPath);
+    
+    const sizeKB = Math.round(fs.statSync(outputPath).size / 1024);
+    console.log(`✅ Compressed to: ${outputFilename} (${sizeKB}KB)`);
+    
+    return { name: outputFilename, size: sizeKB };
+}
+
+async function main() {
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    const results = [];
+    for (const file of screenshots) {
+        const result = await compressImage(file);
+        results.push(result);
+    }
+    
+    console.log('\n🎉 All screenshots compressed!');
+    console.log('\n📊 Summary:');
+    console.log('─'.repeat(40));
+    results.forEach(r => {
+        const status = r.size <= 1024 ? '✅' : '⚠️';
+        console.log(`${status} ${r.name}: ${r.size}KB`);
+    });
+    console.log('─'.repeat(40));
+    console.log(`\n📁 Upload files from: ${outputDir}`);
+}
+
+main().catch(console.error);
+
+
+文件名：capture-screenshots.js
+
+const puppeteer = require('puppeteer-core');
+const path = require('path');
+
+const templates = [
+    { name: 'screenshot-1-home', file: 'screenshot-1-home.html' },
+    { name: 'screenshot-2-result', file: 'screenshot-2-result.html' },
+    { name: 'screenshot-3-features', file: 'screenshot-3-features.html' },
+    { name: 'screenshot-4-history', file: 'screenshot-4-history.html' },
+    { name: 'screenshot-5-settings', file: 'screenshot-5-settings.html' }
+];
+
+const templateDir = 'C:/Users/ruby/.qclaw/workspace/truthlens-web/screenshots-template';
+const outputDir = 'C:/Users/ruby/.qclaw/workspace/truthlens-web/screenshots-final';
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function captureScreenshot(template) {
+    const browser = await puppeteer.launch({
+        executablePath: 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+        headless: 'new',
+        defaultViewport: { width: 1080, height: 1920 }
+    });
+    
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1080, height: 1920 });
+    
+    const filePath = `file:///${templateDir}/${template.file}`;
+    await page.goto(filePath, { waitUntil: 'networkidle0' });
+    
+    await sleep(1000);
+    
+    const outputPath = path.join(outputDir, `${template.name}.png`);
+    await page.screenshot({
+        path: outputPath,
+        fullPage: false,
+        clip: { x: 0, y: 0, width: 1080, height: 1920 }
+    });
+    
+    console.log(`✅ Captured: ${template.name}.png`);
+    
+    await browser.close();
+}
+
+async function main() {
+    const fs = require('fs');
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    for (const template of templates) {
+        await captureScreenshot(template);
+    }
+    
+    console.log('\n🎉 All 5 screenshots captured!');
+    console.log(`📁 Output: ${outputDir}`);
+}
+
+main().catch(console.error);

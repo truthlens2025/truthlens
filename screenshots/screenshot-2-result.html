@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920, initial-scale=1">
+<title>TruthLens Screenshot 2 - Result</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1920px;
+  background: #0a0a0f;
+  font-family: -apple-system, 'PingFang SC', sans-serif;
+  overflow: hidden; color: #f0f0f8;
+}
+.nav {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 30px 50px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.logo { display: flex; align-items: center; gap: 16px; }
+.logo-icon {
+  width: 68px; height: 68px; background: #7c6aff; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center; font-size: 32px;
+}
+.logo-text { font-size: 36px; font-weight: 800; }
+.lang-toggle { display: flex; background: #1a1a26; border-radius: 14px; padding: 6px; }
+.lang-btn { padding: 10px 28px; border-radius: 10px; font-size: 28px; color: #6b6b8a; }
+.lang-btn.active { background: #7c6aff; color: white; }
+
+.hero { text-align: center; padding: 50px 50px 30px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 12px;
+  background: rgba(124,106,255,0.15);
+  border: 1px solid rgba(124,106,255,0.3);
+  border-radius: 100px; padding: 12px 28px; margin-bottom: 28px;
+}
+.badge-dot { width: 12px; height: 12px; border-radius: 50%; background: #7c6aff; }
+.badge-text { font-size: 26px; color: #a89fff; letter-spacing: 2px; }
+
+.title { font-size: 60px; font-weight: 800; margin-bottom: 14px; }
+.subtitle { font-size: 30px; color: #6b6b8a; }
+
+.card {
+  background: #12121a; border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 44px; margin: 0 40px 30px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.tabs {
+  display: flex; border-bottom: 1px solid rgba(255,255,255,0.07); padding: 0 40px;
+}
+.tab {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 14px;
+  padding: 28px 0; border-bottom: 4px solid transparent; margin-bottom: -1px;
+}
+.tab.active { border-bottom-color: #7c6aff; }
+.tab-icon { font-size: 36px; }
+.tab-text { font-size: 30px; color: #6b6b8a; }
+.tab.active .tab-text { color: #f0f0f8; }
+
+.input-area { padding: 40px; }
+.text-input {
+  background: #1a1a26; border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 28px; padding: 30px; color: #a0a0b8; font-size: 26px;
+  min-height: 200px; width: 100%; line-height: 1.6;
+}
+.actions { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 20px; }
+.options { display: flex; gap: 14px; }
+.chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 24px;
+  background: #1a1a26; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px;
+}
+.chip.selected { background: rgba(124,106,255,0.15); border-color: rgba(124,106,255,0.4); }
+.chip-icon { font-size: 26px; }
+.chip-text { font-size: 26px; color: #6b6b8a; }
+.chip.selected .chip-text { color: #a89fff; }
+.detect-btn {
+  background: #7c6aff; border-radius: 22px;
+  padding: 22px 52px; font-size: 32px; font-weight: 500; color: white; white-space: nowrap;
+}
+
+.result {
+  border-top: 1px solid rgba(255,255,255,0.07); padding: 36px;
+}
+.result-header { display: flex; align-items: center; gap: 30px; margin-bottom: 30px; }
+.score-ring {
+  width: 160px; height: 160px; border-radius: 80px;
+  border: 8px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  position: relative;
+}
+.score-ring::before {
+  content: '';
+  position: absolute;
+  width: 160px; height: 160px;
+  border-radius: 80px;
+  border: 8px solid transparent;
+  border-top-color: #ff4d6a;
+  border-right-color: #ff4d6a;
+  transform: rotate(45deg);
+  top: -8px; left: -8px;
+}
+.score-ring::after {
+  content: '';
+  position: absolute;
+  width: 160px; height: 160px;
+  border-radius: 80px;
+  border: 8px solid transparent;
+  border-bottom-color: #ff4d6a;
+  transform: rotate(-90deg);
+  top: -8px; left: -8px;
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+}
+.score-center { text-align: center; }
+.score-num { font-size: 56px; font-weight: 800; color: #ff4d6a; }
+.score-label { font-size: 22px; color: #6b6b8a; margin-top: 4px; }
+
+.verdict { flex: 1; }
+.verdict-label { font-size: 38px; font-weight: 700; color: #ff4d6a; margin-bottom: 12px; }
+.verdict-desc { font-size: 26px; color: #6b6b8a; line-height: 1.5; }
+
+.metrics { display: flex; flex-direction: column; gap: 16px; margin-bottom: 28px; }
+.metric {
+  background: #1a1a26; border-radius: 22px; padding: 24px;
+}
+.metric-header { display: flex; justify-content: space-between; margin-bottom: 14px; }
+.metric-name { font-size: 26px; color: #6b6b8a; }
+.metric-val { font-size: 26px; font-weight: 600; color: #ff4d6a; }
+.metric-bar-bg { height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+.metric-bar { height: 100%; background: linear-gradient(90deg, #ff4d6a, #ff8c6a); border-radius: 4px; width: 87%; }
+
+.result-actions { display: flex; gap: 16px; }
+.action-btn {
+  flex: 1; background: #1a1a26; border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px; padding: 22px; text-align: center;
+  font-size: 28px; color: #6b6b8a;
+}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="logo">
+    <div class="logo-icon">🔍</div>
+    <span class="logo-text">TruthLens</span>
+  </div>
+  <div class="lang-toggle">
+    <div class="lang-btn">EN</div>
+    <div class="lang-btn active">中文</div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="badge">
+    <div class="badge-dot"></div>
+    <span class="badge-text">AI 内容检测工具</span>
+  </div>
+  <div class="title">一眼看穿<br>AI 生成</div>
+  <div class="subtitle">秒速检测文本、图片是否由 AI 生成。</div>
+</div>
+
+<div class="card">
+  <div class="tabs">
+    <div class="tab active">
+      <span class="tab-icon">📝</span>
+      <span class="tab-text">文本</span>
+    </div>
+    <div class="tab">
+      <span class="tab-icon">🖼️</span>
+      <span class="tab-text">图片</span>
+    </div>
+    <div class="tab">
+      <span class="tab-icon">📄</span>
+      <span class="tab-text">文档</span>
+    </div>
+  </div>
+  <div class="input-area">
+    <div class="text-input">人工智能技术的快速发展正在深刻改变我们的生活方式和工作模式。从医疗诊断到教育培训，从金融服务到娱乐媒体，AI的应用已经渗透到各行各业...</div>
+    <div class="actions">
+      <div class="options">
+        <div class="chip selected">
+          <span class="chip-icon">🔬</span>
+          <span class="chip-text">深度扫描</span>
+        </div>
+        <div class="chip">
+          <span class="chip-icon">✨</span>
+          <span class="chip-text">高亮标注</span>
+        </div>
+      </div>
+      <div class="detect-btn">🔍 检测中...</div>
+    </div>
+  </div>
+
+  <div class="result">
+    <div class="result-header">
+      <div class="score-ring">
+        <div class="score-center">
+          <div class="score-num">87%</div>
+          <div class="score-label">AI 概率</div>
+        </div>
+      </div>
+      <div class="verdict">
+        <div class="verdict-label">⚠️ 高度疑似 AI 生成</div>
+        <div class="verdict-desc">该内容呈现明显的 AI 写作特征。</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-header">
+          <span class="metric-name">困惑度</span>
+          <span class="metric-val">87%</span>
+        </div>
+        <div class="metric-bar-bg"><div class="metric-bar"></div></div>
+      </div>
+      <div class="metric">
+        <div class="metric-header">
+          <span class="metric-name">句式变化</span>
+          <span class="metric-val">62%</span>
+        </div>
+        <div class="metric-bar-bg"><div class="metric-bar" style="width:62%"></div></div>
+      </div>
+      <div class="metric">
+        <div class="metric-header">
+          <span class="metric-name">词汇多样性</span>
+          <span class="metric-val">71%</span>
+        </div>
+        <div class="metric-bar-bg"><div class="metric-bar" style="width:71%"></div></div>
+      </div>
+      <div class="metric">
+        <div class="metric-header">
+          <span class="metric-name">情感波动</span>
+          <span class="metric-val">48%</span>
+        </div>
+        <div class="metric-bar-bg"><div class="metric-bar" style="width:48%"></div></div>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <div class="action-btn">📋 复制</div>
+      <div class="action-btn">🔗 分享</div>
+      <div class="action-btn">🔄 重新检测</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

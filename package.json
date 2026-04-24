@@ -1,0 +1,32 @@
+{
+  "name": "truthlens-app",
+  "version": "1.0.0",
+  "description": "TruthLens 真视镜 - AI内容检测工具",
+  "scripts": {
+    "build": "echo 'Static site, no build needed'",
+    "cap:init": "cap init",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android"
+  },
+  "keywords": [
+    "ai",
+    "detector",
+    "content",
+    "truthlens"
+  ],
+  "author": "zhong-shunying",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/filesystem": "^6.0.4",
+    "mammoth": "^1.12.0",
+    "pdfjs-dist": "^5.6.205",
+    "puppeteer-core": "^24.42.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}
