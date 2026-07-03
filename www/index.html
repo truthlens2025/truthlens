@@ -278,8 +278,8 @@ footer { border-top: 1px solid var(--border); padding: 22px 36px; display: flex;
         <div id="image-panel" class="upload-zone" onclick="document.getElementById('img-input').click()" ondragover="handleDrag(event,this)" ondrop="handleDrop(event,this,'image')">
           <div class="upload-icon">🖼️</div>
           <div class="upload-text"><strong>点击上传</strong> 或拖拽图片</div>
-          <div class="upload-hint" id="img-hint">支持 JPG、PNG、WebP、GIF、BMP、TIFF、SVG、ICO、AVIF、HEIC</div>
-          <input type="file" id="img-input" accept="image/*,.heic,.heif,.avif" style="display:none" onchange="handleFileSelect(this,'image')">
+          <div class="upload-hint">支持 JPG、PNG、WebP、GIF</div>
+          <input type="file" id="img-input" accept="image/*" style="display:none" onchange="handleFileSelect(this,'image')">
         </div>
         <div id="file-panel" class="upload-zone" onclick="document.getElementById('doc-input').click()" ondragover="handleDrag(event,this)" ondrop="handleDrop(event,this,'file')">
           <div class="upload-icon">📄</div>
@@ -496,146 +496,25 @@ function updateCharCount(el) {
 function toggleChip(el) { el.classList.toggle('selected'); }
 
 // ===== Drag & Drop =====
-let selectedImageFile = null;
-let selectedDocText = null;
-
 function handleDrag(e, el) { e.preventDefault(); el.classList.add('drag-over'); }
-function handleDrop(e, el, type) {
-  e.preventDefault();
-  el.classList.remove('drag-over');
-  const files = e.dataTransfer.files;
-  if (files.length > 0) processFile(files[0], type);
-}
+function handleDrop(e, el, type) { e.preventDefault(); el.classList.remove('drag-over'); }
 function handleFileSelect(input, type) {
-  if (input.files[0]) processFile(input.files[0], type);
-}
-
-function processFile(file, type) {
-  const zone = document.getElementById(type === 'image' ? 'image-panel' : 'file-panel');
-  const sizeMB = (file.size / 1048576).toFixed(1);
-  const ext = file.name.split('.').pop().toLowerCase();
-
-  if (type === 'image') {
-    // 支持所有常见图片格式 - 更宽松的判断
-    const supportedImg = ['jpg','jpeg','png','gif','webp','bmp','tiff','tif','svg','ico','avif','heic','heif','jxl','raw','cr2','nef','arw','dng','psd','ai','eps'];
-    const isImageType = file.type.startsWith('image/') || file.type === '' || file.type === 'application/octet-stream';
-    const isSupportedExt = supportedImg.includes(ext);
-    if (!isSupportedExt && !isImageType) {
-      zone.querySelector('.upload-text').innerHTML = `<strong style="color:var(--red)">⚠️ 不支持的格式: .${ext} (${file.type || '未知'})</strong>`;
-      return;
-    }
-    if (file.size > 20 * 1048576) {
-      zone.querySelector('.upload-text').innerHTML = `<strong style="color:var(--red)">⚠️ 文件过大 (${sizeMB}MB)，最大 20MB</strong>`;
-      return;
-    }
-    selectedImageFile = file;
-    selectedDocText = null;
-
-    // 显示预览
-    if (file.type.startsWith('image/') && !['image/svg+xml','image/tiff'].includes(file.type)) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        zone.querySelector('.upload-text').innerHTML =
-          `<img src="${e.target.result}" style="max-width:200px;max-height:120px;border-radius:8px;margin-bottom:8px"><br><strong>${file.name}</strong> (${sizeMB}MB)`;
-      };
-      reader.readAsDataURL(file);
-    } else {
-      zone.querySelector('.upload-text').innerHTML = `<strong>${file.name}</strong> (${sizeMB}MB) ✅ 已选择`;
-    }
-
-  } else if (type === 'file') {
-    const supportedDoc = ['pdf','docx','txt','doc','rtf','html','htm','md','csv'];
-    if (!supportedDoc.includes(ext)) {
-      zone.querySelector('.upload-text').innerHTML = `<strong style="color:var(--red)">⚠️ 不支持的格式: .${ext}</strong>`;
-      return;
-    }
-    if (file.size > 10 * 1048576) {
-      zone.querySelector('.upload-text').innerHTML = `<strong style="color:var(--red)">⚠️ 文件过大 (${sizeMB}MB)，最大 10MB</strong>`;
-      return;
-    }
-    selectedImageFile = null;
-    selectedDocText = null;
-    zone.querySelector('.upload-text').innerHTML = `<strong>${file.name}</strong> (${sizeMB}MB) 📄 读取中...`;
-    readDocument(file, zone);
+  if (input.files[0]) {
+    const zone = document.getElementById(type === 'image' ? 'image-panel' : 'file-panel');
+    zone.querySelector('.upload-text').innerHTML = `<strong>${input.files[0].name}</strong>`;
   }
-}
-
-// 读取文档内容
-async function readDocument(file, zone) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  try {
-    let text = '';
-    if (ext === 'txt' || ext === 'md' || ext === 'csv' || ext === 'rtf' || ext === 'html' || ext === 'htm') {
-      text = await file.text();
-      if (ext === 'html' || ext === 'htm') {
-        // 简单提取HTML文本
-        const tmp = document.createElement('div');
-        tmp.innerHTML = text;
-        text = tmp.textContent || tmp.innerText || '';
-      }
-      if (ext === 'rtf') {
-        // 简单去除RTF控制字符
-        text = text.replace(/\{\\[^}]*\}/g, '').replace(/\\[a-z]+\d* ?/gi, '').trim();
-      }
-    } else if (ext === 'pdf') {
-      if (typeof pdfjsLib !== 'undefined') {
-        text = await extractPDFText(file);
-      } else {
-        text = '[PDF 文档已选择 — 需要在线模式才能解析]';
-      }
-    } else if (ext === 'docx' || ext === 'doc') {
-      if (typeof mammoth !== 'undefined') {
-        const buf = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer: buf });
-        text = result.value;
-      } else {
-        text = '[DOCX 文档已选择 — 需要在线模式才能解析]';
-      }
-    }
-
-    if (text && text.trim()) {
-      selectedDocText = text.trim().slice(0, 5000);
-      zone.querySelector('.upload-text').innerHTML =
-        `<strong>${file.name}</strong> (${(file.size/1048576).toFixed(1)}MB) ✅ 已读取 ${selectedDocText.length} 字符`;
-    } else {
-      zone.querySelector('.upload-text').innerHTML = `<strong>${file.name}</strong> ⚠️ 未能提取文本内容`;
-    }
-  } catch (err) {
-    console.error('Document read error:', err);
-    zone.querySelector('.upload-text').innerHTML = `<strong>${file.name}</strong> ⚠️ 读取失败: ${err.message}`;
-  }
-}
-
-// PDF 文本提取
-async function extractPDFText(file) {
-  const buf = await file.arrayBuffer();
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  let text = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map(item => item.str).join(' ') + '\n';
-  }
-  return text;
 }
 
 // ===== Detection =====
 function runDetection() {
   const text = document.getElementById('main-textarea').value.trim();
-  const imgFile = selectedImageFile;
-  const docText = selectedDocText;
-
-  // 检查是否有内容输入
-  if (!text && !imgFile && !docText) {
+  if (!text) {
     const ta = document.getElementById('main-textarea');
     ta.style.borderColor = 'rgba(255,77,106,0.5)';
     ta.style.boxShadow = '0 0 0 3px rgba(255,77,106,0.1)';
     setTimeout(() => { ta.style.borderColor = ''; ta.style.boxShadow = ''; }, 1500);
-    showTooltip('⚠️ 请输入内容或选择文件');
     return;
   }
-
   const btn = document.getElementById('detect-btn');
   btn.classList.add('loading');
   document.getElementById('result-section').classList.remove('show');
@@ -645,88 +524,25 @@ function runDetection() {
   const pf = document.getElementById('progress-fill');
   const pl = document.getElementById('progress-label');
   pw.classList.add('show');
-
-  // 根据类型显示不同的进度步骤
-  const isImage = !!imgFile;
-  const isDoc = !!docText;
-  const baseSteps = isImage 
-    ? ['📷 正在加载图片...', '🔍 提取图像特征...', '🧠 分析像素模式...', '🤖 比对 AI 绘图特征...', '📊 生成检测报告...']
-    : isDoc
-    ? ['📄 解析文档内容...', '🔍 提取文本特征...', '📝 分析写作风格...', '🤖 比对 AI 写作模式...', '📊 生成检测报告...']
-    : ['正在提取特征...', '分析句式结构...', '计算困惑度...', '多模型交叉验证...', '生成检测报告...'];
-
+  const steps = i18n[currentLang].progress;
   let step = 0, progress = 0;
   const interval = setInterval(() => {
     progress += Math.random() * 22 + 8;
     if (progress > 95) progress = 95;
     pf.style.width = progress + '%';
-    if (step < baseSteps.length) { pl.textContent = baseSteps[step++]; }
+    if (step < steps.length) { pl.textContent = steps[step++]; }
   }, 400);
 
-  // 执行检测
-  setTimeout(async () => {
+  setTimeout(() => {
     clearInterval(interval);
     pf.style.width = '100%';
-
-    let resultText = text;
-    let detectionType = 'text';
-
-    // 如果有图片，进行图片检测
-    if (imgFile) {
-      try {
-        const imgData = await fileToBase64(imgFile);
-        // 模拟图片检测结果（实际项目中这里调用 AI API）
-        const imgResult = analyzeImage(imgFile.name, imgFile.size);
-        resultText = `[图片检测] ${imgFile.name}\n文件大小: ${(imgFile.size/1048576).toFixed(2)}MB\n格式: ${imgFile.type || 'image/' + imgFile.name.split('.').pop()}\n\n${imgResult.description}`;
-        detectionType = 'image';
-      } catch (err) {
-        resultText = `[图片处理失败] ${err.message}`;
-      }
-    }
-    // 如果有文档内容
-    else if (docText) {
-      resultText = docText;
-      detectionType = 'document';
-    }
-
     setTimeout(() => {
       pw.classList.remove('show');
       pf.style.width = '0%';
       btn.classList.remove('loading');
-      showResult(resultText, detectionType);
+      showResult(text);
     }, 300);
   }, 2000 + Math.random() * 800);
-}
-
-// 将文件转为 Base64
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-// 图片分析（模拟 AI 图像检测）
-function analyzeImage(filename, filesize) {
-  const ext = filename.split('.').pop().toLowerCase();
-  const sizeCategory = filesize < 50000 ? '小' : filesize < 200000 ? '中' : '大';
-  
-  // 模拟检测结果（真实项目中调用 AI API）
-  const score = Math.round(35 + Math.random() * 50); // 35-85 分之间
-  const confidence = Math.round(75 + Math.random() * 20);
-  
-  let desc = '';
-  if (score > 65) {
-    desc = `⚠️ 检测结果：高度疑似 AI 生成图像\n\n该图片呈现多个 AI 绘图典型特征：\n• 边缘细节不自然\n• 纹理模式异常\n• 可能来自 Midjourney、DALL-E、Stable Diffusion 等主流 AI 绘图工具`;
-  } else if (score > 40) {
-    desc = `🤔 检测结果：可能为 AI 辅助生成\n\n检测到部分 AI 生成特征，但也有真实照片的元素，可能是 AI 润色或混合生成。`;
-  } else {
-    desc = `✅ 检测结果：疑似真实拍摄图像\n\n该图片呈现自然摄影特征，未检测到明显的 AI 生成痕迹。`;
-  }
-  
-  return { score, confidence, description: desc };
 }
 
 function showResult(text) {

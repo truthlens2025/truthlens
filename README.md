@@ -4,8 +4,7 @@ AI 内容检测工具 - 秒速识别 AI 生成内容
 
 ## 在线访问
 
-- Netlify: https://benevolent-croquembouche-5b6913.netlify.app
-- GitHub: https://github.com/truthlens2025/truthlens
+https://zhong-shunying.gitee.io/truthlens-web
 
 ## 功能
 
@@ -18,22 +17,11 @@ AI 内容检测工具 - 秒速识别 AI 生成内容
 - 纯 HTML/CSS/JS
 - 响应式设计
 - 深色主题 UI
-- PWA 支持
-- Capacitor Android 打包
 
 ## 本地运行
 
 ```bash
-npm install
-npm start
+node server.js
 ```
 
 然后打开 http://localhost:3000
-
-## 构建安卓 APK
-
-```bash
-npx cap add android
-npx cap sync
-cd android && ./gradlew assembleDebug
-```
